@@ -52,7 +52,10 @@ parameters = {
     'model': "MobileNetSSD_deploy",
     'min_confidence': 0.2,
     'video_source': 0,  # Use 0 for webcam
-    'reshape': (640, 360),
+    # 'video_source': "aerial.mp4",
+    # 'reshape': (640, 360),
+    'reshape': (300, 300),
+    'targets': ['car', 'person']
 }
 
 # load our serialized model from disk
@@ -105,14 +108,20 @@ while True:
             box = detections[i, 3:7] * np.array([w, h, w, h])
             (startX, startY, endX, endY) = box.astype("int")
 
+            name = model['classes'][idx] if idx < len(model['classes']) else "unknown ({})".format(idx)
+
+            if name not in parameters['targets']:
+                continue
+
+            centroid = ((startX + endX) / 2, (startY + endY) / 2)
+            label = "{}: {:.2f}% @({}, {})".format(name,
+                                                   confidence * 100, *centroid)
+
             # draw the prediction on the frame
             if not idx in colors:
                 colors[idx] = np.random.uniform(0, 255, size=3)
             color = colors[idx]
 
-            name = model['classes'][idx] if idx < len(model['classes']) else "unknown ({})".format(idx)
-            label = "{}: {:.2f}%".format(name,
-                                         confidence * 100)
             cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
             y = startY - 15 if startY - 15 > 15 else startY + 15
             cv2.putText(frame, label, (startX, y),
